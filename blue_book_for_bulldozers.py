@@ -1,47 +1,8 @@
-from pandas_summary import DataFrameSummary
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from IPython.display import display
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+from fastai.structured import *
+from sklearn import ensemble, preprocessing
 from sklearn.model_selection import train_test_split
-import math
-from pandas_summary import DataFrameSummary
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from IPython.display import display
-from sklearn import preprocessing
 
-from sklearn import metrics
-
-from sklearn import metrics
-
-
-# df_raw = pd.read_csv(f'bulldozers/Train.csv', low_memory=False, parse_dates=["saledate"])
-# pd.to_pickle(df_raw, "bulldozers/Train.pkl")
-
-def show_correlation_matrix(corr_matrix):
-    plt.figure(figsize=(10, 10))
-    plt.imshow(corr_matrix, cmap='RdYlGn', interpolation='none', aspect='auto')
-    plt.colorbar()
-    plt.xticks(range(len(corr_matrix)), corr_matrix.columns, rotation='vertical')
-    plt.yticks(range(len(corr_matrix)), corr_matrix.columns);
-    plt.suptitle('Correlations Heat Map', fontsize=15, fontweight='bold')
-    plt.show()
-
-
-def show_violin_plot(data_frame, feature):
-    fig, ax = plt.subplots()
-    ax.violinplot(data_frame[feature], vert=False)
-    plt.suptitle(feature, fontsize=15, fontweight='bold')
-    plt.show()
-
-
-def display_all(df):
-    with pd.option_context("display.max_rows", 1000, "display.max_columns", 1000):
-        display(df)
-
-
-df = pd.read_pickle("bulldozers/Train.pkl")
+df = pd.read_csv(f'bulldozers/Train.csv', low_memory=False, parse_dates=["saledate"])
 le = preprocessing.LabelEncoder()
 
 df['SalePrice'] = np.log(df['SalePrice'])
@@ -65,16 +26,26 @@ def rmse(x, y): return math.sqrt(((x - y) ** 2).mean())
 
 
 def print_score(m):
-    res = [rmse(m.predict(X_train), y_train), rmse(m.predict(X_valid), y_valid),
+    res = [rmse(m.predict(X_train), y_train),
+           rmse(m.predict(X_valid), y_valid),
            m.score(X_train, y_train), m.score(X_valid, y_valid)]
     if hasattr(m, 'oob_score_'): res.append(m.oob_score_)
     print(res)
 
 
-print("CZESC")
-print(df.isnull().values.any())
-print("CZESC")
-
-m = RandomForestRegressor(n_jobs=-1)
+m = ensemble.RandomForestRegressor(n_jobs=-1)
 m.fit(X_train, y_train)
-print_score(m)
+
+test_X = pd.read_csv('bulldozers/Test.csv')
+test_X = test_X.drop(columns=['MachineHoursCurrentMeter', 'auctioneerID'])
+
+for feature in test_X.columns.values:
+    if feature == 'auctioneerID' or feature == 'SalesID':
+        continue
+    test_X[feature].fillna('0', inplace=True)
+    test_X[feature] = le.fit_transform(test_X[feature])
+
+predicted_prices = m.predict(test_X)
+
+my_submission = pd.DataFrame({'SalesID': test_X.SalesID, 'SalePrice': predicted_prices})
+my_submission.to_csv('submission2.csv', index=False)
