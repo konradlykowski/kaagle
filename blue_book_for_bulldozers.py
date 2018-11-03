@@ -2,6 +2,7 @@ from fastai.structured import *
 from sklearn import ensemble, preprocessing
 from sklearn.model_selection import train_test_split
 
+#to make that work we need do download and unzip data from https://www.kaggle.com/c/bluebook-for-bulldozers/data
 df = pd.read_csv(f'bulldozers/Train.csv', low_memory=False, parse_dates=["saledate"])
 le = preprocessing.LabelEncoder()
 
